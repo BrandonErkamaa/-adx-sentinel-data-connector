@@ -52,7 +52,7 @@
     }
   },
   "variables": {
-    "functionCodeUrl": "https://git.doit.wisc.edu/ERKAMAA/adx-sentinel-data-connector/raw/main/function_code/__init__.py"
+    "functionCodeUrl": "https://raw.githubusercontent.com/BrandonErkamaa/adx-sentinel-data-connector/main/function_code/__init__.py"
   },
   "resources": [
     {

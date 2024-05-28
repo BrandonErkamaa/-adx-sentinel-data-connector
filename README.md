@@ -6,4 +6,4 @@ This repository contains an Azure Function App and its ARM deployment template t
 
 Click the button below to deploy the Function App to Azure:
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fgit.doit.wisc.edu%2FERKAMAA%2Fadx-sentinel-data-connector%2Fraw%2Fmain%2Fazuredeploy.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FBrandonErkamaa%2Fadx-sentinel-data-connector%2Fmain%2Fazuredeploy.json)
