@@ -1,0 +1,146 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "functionAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the Azure Function App."
+      }
+    },
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Location for the resources."
+      }
+    },
+    "managedIdentityId": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource ID of the user-assigned managed identity."
+      }
+    },
+    "adxCluster": {
+      "type": "string",
+      "metadata": {
+        "description": "ADX Cluster URL."
+      }
+    },
+    "adxDatabase": {
+      "type": "string",
+      "metadata": {
+        "description": "ADX Database name."
+      }
+    },
+    "tableName": {
+      "type": "string",
+      "metadata": {
+        "description": "ADX Table name."
+      }
+    },
+    "sentinelWorkspaceId": {
+      "type": "string",
+      "metadata": {
+        "description": "Sentinel Workspace ID."
+      }
+    },
+    "sentinelWorkspaceKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Sentinel Workspace Key."
+      }
+    }
+  },
+  "variables": {
+    "functionCodeUrl": "https://git.doit.wisc.edu/ERKAMAA/adx-sentinel-data-connector/raw/main/function_code/__init__.py"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2021-02-01",
+      "name": "[parameters('functionAppName')]",
+      "location": "[parameters('location')]",
+      "identity": {
+        "type": "UserAssigned",
+        "userAssignedIdentities": {
+          "[parameters('managedIdentityId')]": {}
+        }
+      },
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('functionAppName'))]",
+        "siteConfig": {
+          "appSettings": [
+            {
+              "name": "ADX_CLUSTER",
+              "value": "[parameters('adxCluster')]"
+            },
+            {
+              "name": "ADX_DATABASE",
+              "value": "[parameters('adxDatabase')]"
+            },
+            {
+              "name": "TABLE_NAME",
+              "value": "[parameters('tableName')]"
+            },
+            {
+              "name": "SENTINEL_WORKSPACE_ID",
+              "value": "[parameters('sentinelWorkspaceId')]"
+            },
+            {
+              "name": "SENTINEL_WORKSPACE_KEY",
+              "value": "[parameters('sentinelWorkspaceKey')]"
+            },
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', toLower(concat(parameters('functionAppName'), 'storage')), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', toLower(concat(parameters('functionAppName'), 'storage'))), '2021-02-01').keys[0].value, ';EndpointSuffix=core.windows.net')]"
+            },
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "~3"
+            },
+            {
+              "name": "WEBSITE_RUN_FROM_PACKAGE",
+              "value": "[variables('functionCodeUrl')]"
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', parameters('functionAppName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', toLower(concat(parameters('functionAppName'), 'storage')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2021-02-01",
+      "name": "[parameters('functionAppName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Y1",
+        "tier": "Dynamic"
+      },
+      "properties": {}
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2021-02-01",
+      "name": "[toLower(concat(parameters('functionAppName'), 'storage'))]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
+      "properties": {}
+    }
+  ],
+  "outputs": {
+    "functionAppName": {
+      "type": "string",
+      "value": "[parameters('functionAppName')]"
+    },
+    "managedIdentityId": {
+      "type": "string",
+      "value": "[parameters('managedIdentityId')]"
+    }
+  }
+}
