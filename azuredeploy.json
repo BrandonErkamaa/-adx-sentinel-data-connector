@@ -46,13 +46,14 @@
     }
   },
   "variables": {
-    "functionCodeUrl": "https://raw.githubusercontent.com/BrandonErkamaa/adx-sentinel-data-connector/main/function_code/__init__.py"
+    "functionCodeUrl": "https://raw.githubusercontent.com/BrandonErkamaa/adx-sentinel-data-connector/main/function_code/__init__.py",
+    "storageAccountName": "[substring(concat(toLower(parameters('functionAppName')), 'storage'), 0, 24)]"
   },
   "resources": [
     {
       "type": "Microsoft.Storage/storageAccounts",
       "apiVersion": "2021-02-01",
-      "name": "[toLower(concat(parameters('functionAppName'), 'storage'))]",
+      "name": "[variables('storageAccountName')]",
       "location": "[resourceGroup().location]",
       "sku": {
         "name": "Standard_LRS"
@@ -97,7 +98,7 @@
             },
             {
               "name": "AzureWebJobsStorage",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', toLower(concat(parameters('functionAppName'), 'storage')), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', toLower(concat(parameters('functionAppName'), 'storage'))), '2021-02-01').keys[0].value, ';EndpointSuffix=core.windows.net')]"
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2021-02-01').keys[0].value, ';EndpointSuffix=core.windows.net')]"
             },
             {
               "name": "FUNCTIONS_EXTENSION_VERSION",
@@ -112,7 +113,7 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.Web/serverfarms', parameters('functionAppName'))]",
-        "[resourceId('Microsoft.Storage/storageAccounts', toLower(concat(parameters('functionAppName'), 'storage')))]"
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
       ]
     },
     {
@@ -129,10 +130,10 @@
     {
       "type": "Microsoft.Storage/storageAccounts/tableServices/tables",
       "apiVersion": "2019-06-01",
-      "name": "[concat(toLower(concat(parameters('functionAppName'), 'storage')), '/default/', 'adxStateTable')]",
+      "name": "[concat(variables('storageAccountName'), '/default/', 'adxStateTable')]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts', toLower(concat(parameters('functionAppName'), 'storage')))]"
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
       ],
       "properties": {}
     }
