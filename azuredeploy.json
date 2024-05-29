@@ -5,7 +5,7 @@
     "functionAppName": {
       "type": "string",
       "metadata": {
-        "description": "Name of the Azure Function App."
+        "description": "Name of the Azure Function App. Must contain only letters, numbers, and hyphens."
       }
     },
     "managedIdentityName": {
@@ -48,6 +48,7 @@
   "variables": {
     "functionCodeUrl": "https://raw.githubusercontent.com/BrandonErkamaa/adx-sentinel-data-connector/main/function_code/__init__.py",
     "storageAccountName": "[substring(replace(replace(replace(concat(toLower(parameters('functionAppName')), 'storage'), '_', ''), '-', ''), ' ', ''), 0, 24)]",
+    "cleanFunctionAppName": "[replace(replace(parameters('functionAppName'), '_', ''), '-', '')]",
     "managedIdentityResourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.ManagedIdentity/userAssignedIdentities/', parameters('managedIdentityName'))]"
   },
   "resources": [
@@ -65,20 +66,20 @@
     {
       "type": "Microsoft.Web/serverfarms",
       "apiVersion": "2021-02-01",
-      "name": "[concat(parameters('functionAppName'), 'plan')]",
+      "name": "[concat(variables('cleanFunctionAppName'), 'plan')]",
       "location": "[resourceGroup().location]",
       "sku": {
         "name": "Y1",
         "tier": "Dynamic"
       },
       "properties": {
-        "name": "[concat(parameters('functionAppName'), 'plan')]"
+        "name": "[concat(variables('cleanFunctionAppName'), 'plan')]"
       }
     },
     {
       "type": "Microsoft.Web/sites",
       "apiVersion": "2021-02-01",
-      "name": "[parameters('functionAppName')]",
+      "name": "[variables('cleanFunctionAppName')]",
       "location": "[resourceGroup().location]",
       "kind": "functionapp",
       "identity": {
@@ -88,7 +89,7 @@
         }
       },
       "properties": {
-        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', concat(parameters('functionAppName'), 'plan'))]",
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', concat(variables('cleanFunctionAppName'), 'plan'))]",
         "siteConfig": {
           "appSettings": [
             {
@@ -127,7 +128,7 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Web/serverfarms', concat(parameters('functionAppName'), 'plan'))]",
+        "[resourceId('Microsoft.Web/serverfarms', concat(variables('cleanFunctionAppName'), 'plan'))]",
         "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
       ]
     },
