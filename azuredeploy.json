@@ -8,12 +8,6 @@
         "description": "Name of the Azure Function App."
       }
     },
-    "region": {
-      "type": "string",
-      "metadata": {
-        "description": "Region for the resources."
-      }
-    },
     "managedIdentityId": {
       "type": "string",
       "metadata": {
