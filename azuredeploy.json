@@ -65,7 +65,7 @@
     {
       "type": "Microsoft.Web/serverfarms",
       "apiVersion": "2021-02-01",
-      "name": "[parameters('functionAppName')]",
+      "name": "[concat(parameters('functionAppName'), 'plan')]",
       "location": "[resourceGroup().location]",
       "sku": {
         "name": "Y1",
@@ -86,7 +86,7 @@
         }
       },
       "properties": {
-        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('functionAppName'))]",
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', concat(parameters('functionAppName'), 'plan'))]",
         "siteConfig": {
           "appSettings": [
             {
@@ -125,7 +125,7 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Web/serverfarms', parameters('functionAppName'))]",
+        "[resourceId('Microsoft.Web/serverfarms', concat(parameters('functionAppName'), 'plan'))]",
         "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
       ]
     },
