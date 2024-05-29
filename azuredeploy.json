@@ -8,10 +8,10 @@
         "description": "Name of the Azure Function App."
       }
     },
-    "managedIdentityId": {
+    "managedIdentityObjectId": {
       "type": "string",
       "metadata": {
-        "description": "Resource ID of the user-assigned managed identity."
+        "description": "Object ID of the user-assigned managed identity."
       }
     },
     "adxCluster": {
@@ -47,7 +47,8 @@
   },
   "variables": {
     "functionCodeUrl": "https://raw.githubusercontent.com/BrandonErkamaa/adx-sentinel-data-connector/main/function_code/__init__.py",
-    "storageAccountName": "[substring(replace(replace(replace(concat(toLower(parameters('functionAppName')), 'storage'), '_', ''), '-', ''), ' ', ''), 0, 24)]"
+    "storageAccountName": "[substring(replace(replace(replace(concat(toLower(parameters('functionAppName')), 'storage'), '_', ''), '-', ''), ' ', ''), 0, 24)]",
+    "managedIdentityResourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.ManagedIdentity/userAssignedIdentities/', parameters('managedIdentityObjectId'))]"
   },
   "resources": [
     {
@@ -69,7 +70,7 @@
       "identity": {
         "type": "UserAssigned",
         "userAssignedIdentities": {
-          "[parameters('managedIdentityId')]": {}
+          "[variables('managedIdentityResourceId')]": {}
         }
       },
       "properties": {
@@ -143,9 +144,9 @@
       "type": "string",
       "value": "[parameters('functionAppName')]"
     },
-    "managedIdentityId": {
+    "managedIdentityObjectId": {
       "type": "string",
-      "value": "[parameters('managedIdentityId')]"
+      "value": "[parameters('managedIdentityObjectId')]"
     }
   }
 }
