@@ -63,6 +63,18 @@
       "properties": {}
     },
     {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2021-02-01",
+      "name": "[parameters('functionAppName')]",
+      "location": "[resourceGroup().location]",
+      "sku": {
+        "name": "Y1",
+        "tier": "Dynamic"
+      },
+      "kind": "functionapp",
+      "properties": {}
+    },
+    {
       "type": "Microsoft.Web/sites",
       "apiVersion": "2021-02-01",
       "name": "[parameters('functionAppName')]",
@@ -116,17 +128,6 @@
         "[resourceId('Microsoft.Web/serverfarms', parameters('functionAppName'))]",
         "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
       ]
-    },
-    {
-      "type": "Microsoft.Web/serverfarms",
-      "apiVersion": "2021-02-01",
-      "name": "[parameters('functionAppName')]",
-      "location": "[resourceGroup().location]",
-      "sku": {
-        "name": "Y1",
-        "tier": "Dynamic"
-      },
-      "properties": {}
     },
     {
       "type": "Microsoft.Storage/storageAccounts/tableServices/tables",
