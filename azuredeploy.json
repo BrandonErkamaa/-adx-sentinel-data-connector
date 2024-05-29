@@ -47,7 +47,7 @@
   },
   "variables": {
     "functionCodeUrl": "https://raw.githubusercontent.com/BrandonErkamaa/adx-sentinel-data-connector/main/function_code/__init__.py",
-    "storageAccountName": "[substring(concat(toLower(parameters('functionAppName')), 'storage'), 0, 24)]"
+    "storageAccountName": "[substring(replace(replace(replace(concat(toLower(parameters('functionAppName')), 'storage'), '_', ''), '-', ''), ' ', ''), 0, 24)]"
   },
   "resources": [
     {
