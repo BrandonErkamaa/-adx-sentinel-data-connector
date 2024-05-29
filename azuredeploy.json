@@ -71,14 +71,16 @@
         "name": "Y1",
         "tier": "Dynamic"
       },
-      "kind": "functionapp",
-      "properties": {}
+      "properties": {
+        "name": "[concat(parameters('functionAppName'), 'plan')]"
+      }
     },
     {
       "type": "Microsoft.Web/sites",
       "apiVersion": "2021-02-01",
       "name": "[parameters('functionAppName')]",
       "location": "[resourceGroup().location]",
+      "kind": "functionapp",
       "identity": {
         "type": "UserAssigned",
         "userAssignedIdentities": {
