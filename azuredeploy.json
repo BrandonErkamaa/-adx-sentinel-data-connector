@@ -8,10 +8,10 @@
         "description": "Name of the Azure Function App."
       }
     },
-    "location": {
+    "region": {
       "type": "string",
       "metadata": {
-        "description": "Location for the resources."
+        "description": "Region for the resources."
       }
     },
     "managedIdentityId": {
@@ -59,7 +59,7 @@
       "type": "Microsoft.Storage/storageAccounts",
       "apiVersion": "2021-02-01",
       "name": "[toLower(concat(parameters('functionAppName'), 'storage'))]",
-      "location": "[parameters('location')]",
+      "location": "[parameters('region')]",
       "sku": {
         "name": "Standard_LRS"
       },
@@ -70,7 +70,7 @@
       "type": "Microsoft.Web/sites",
       "apiVersion": "2021-02-01",
       "name": "[parameters('functionAppName')]",
-      "location": "[parameters('location')]",
+      "location": "[parameters('region')]",
       "identity": {
         "type": "UserAssigned",
         "userAssignedIdentities": {
@@ -125,7 +125,7 @@
       "type": "Microsoft.Web/serverfarms",
       "apiVersion": "2021-02-01",
       "name": "[parameters('functionAppName')]",
-      "location": "[parameters('location')]",
+      "location": "[parameters('region')]",
       "sku": {
         "name": "Y1",
         "tier": "Dynamic"
