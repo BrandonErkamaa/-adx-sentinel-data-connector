@@ -46,7 +46,7 @@
     }
   },
   "variables": {
-    "functionCodeUrl": "https://raw.githubusercontent.com/BrandonErkamaa/adx-sentinel-data-connector/main/function_code/",
+    "functionCodeUrl": "https://raw.githubusercontent.com/BrandonErkamaa/adx-sentinel-data-connector/main/function_code.zip",
     "storageAccountName": "[substring(replace(replace(replace(concat(toLower(parameters('functionAppName')), 'storage'), '_', ''), '-', ''), ' ', ''), 0, 24)]",
     "cleanFunctionAppName": "[replace(replace(parameters('functionAppName'), '_', ''), '-', '')]",
     "managedIdentityResourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.ManagedIdentity/userAssignedIdentities/', parameters('managedIdentityName'))]",
@@ -80,7 +80,7 @@
     {
       "type": "Microsoft.Web/sites",
       "apiVersion": "2021-02-01",
-      "name": "[variables('cleanFunctionAppName')]",
+      "name": "[parameters('functionAppName')]",
       "location": "[resourceGroup().location]",
       "kind": "functionapp",
       "identity": {
@@ -123,7 +123,7 @@
             },
             {
               "name": "WEBSITE_RUN_FROM_PACKAGE",
-              "value": "[concat(variables('functionCodeUrl'), 'function_code.zip')]"
+              "value": "[variables('functionCodeUrl')]"
             },
             {
               "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
