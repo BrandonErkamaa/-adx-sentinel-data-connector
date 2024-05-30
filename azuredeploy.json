@@ -49,7 +49,8 @@
     "functionCodeUrl": "https://raw.githubusercontent.com/BrandonErkamaa/adx-sentinel-data-connector/main/function_code/__init__.py",
     "storageAccountName": "[substring(replace(replace(replace(concat(toLower(parameters('functionAppName')), 'storage'), '_', ''), '-', ''), ' ', ''), 0, 24)]",
     "cleanFunctionAppName": "[replace(replace(parameters('functionAppName'), '_', ''), '-', '')]",
-    "managedIdentityResourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.ManagedIdentity/userAssignedIdentities/', parameters('managedIdentityName'))]"
+    "managedIdentityResourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.ManagedIdentity/userAssignedIdentities/', parameters('managedIdentityName'))]",
+    "applicationInsightsName": "[concat(parameters('functionAppName'), '-ai')]"
   },
   "resources": [
     {
@@ -123,13 +124,18 @@
             {
               "name": "WEBSITE_RUN_FROM_PACKAGE",
               "value": "[variables('functionCodeUrl')]"
+            },
+            {
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[reference(resourceId('microsoft.insights/components', variables('applicationInsightsName')), '2014-04-01').InstrumentationKey]"
             }
           ]
         }
       },
       "dependsOn": [
         "[resourceId('Microsoft.Web/serverfarms', concat(variables('cleanFunctionAppName'), 'plan'))]",
-        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+        "[resourceId('microsoft.insights/components', variables('applicationInsightsName'))]"
       ]
     },
     {
@@ -141,6 +147,15 @@
         "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
       ],
       "properties": {}
+    },
+    {
+      "type": "microsoft.insights/components",
+      "apiVersion": "2014-04-01",
+      "name": "[variables('applicationInsightsName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "Application_Type": "other"
+      }
     }
   ],
   "outputs": {
