@@ -6,6 +6,7 @@ import logging
 import azure.functions as func
 from azure.identity import DefaultAzureCredential
 from azure.data.tables import TableClient
+from azure.core.exceptions import ResourceNotFoundError
 
 ADX_CLUSTER = os.getenv('ADX_CLUSTER')
 ADX_DATABASE = os.getenv('ADX_DATABASE')
@@ -18,17 +19,25 @@ STATE_PARTITION_KEY = "adxState"
 STATE_ROW_KEY = "lastProcessedRow"
 
 def get_adx_token():
-    credential = DefaultAzureCredential()
-    token = credential.get_token("https://kusto.kusto.windows.net/.default")
-    return token.token
+    try:
+        credential = DefaultAzureCredential()
+        token = credential.get_token("https://kusto.kusto.windows.net/.default")
+        return token.token
+    except Exception as e:
+        logging.error(f"Error getting ADX token: {str(e)}")
+        raise
 
 def get_last_processed_row():
     table_client = TableClient.from_connection_string(STORAGE_CONNECTION_STRING, STATE_TABLE_NAME)
     try:
         entity = table_client.get_entity(partition_key=STATE_PARTITION_KEY, row_key=STATE_ROW_KEY)
         return entity['LastProcessedRow']
-    except:
+    except ResourceNotFoundError:
+        logging.warning(f"No previous state found in {STATE_TABLE_NAME}.")
         return None
+    except Exception as e:
+        logging.error(f"Error getting last processed row: {str(e)}")
+        raise
 
 def update_last_processed_row(row_key):
     table_client = TableClient.from_connection_string(STORAGE_CONNECTION_STRING, STATE_TABLE_NAME)
@@ -37,7 +46,11 @@ def update_last_processed_row(row_key):
         'RowKey': STATE_ROW_KEY,
         'LastProcessedRow': row_key
     }
-    table_client.upsert_entity(entity)
+    try:
+        table_client.upsert_entity(entity)
+    except Exception as e:
+        logging.error(f"Error updating last processed row: {str(e)}")
+        raise
 
 def query_adx(token, last_processed_row):
     url = f"{ADX_CLUSTER}/v1/rest/query"
@@ -50,9 +63,13 @@ def query_adx(token, last_processed_row):
         "db": ADX_DATABASE,
         "csl": csl
     }
-    response = requests.post(url, headers=headers, data=json.dumps(body))
-    response.raise_for_status()
-    return response.json()
+    try:
+        response = requests.post(url, headers=headers, data=json.dumps(body))
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        logging.error(f"Error querying ADX: {str(e)}")
+        raise
 
 def send_to_sentinel(data):
     url = f"https://{SENTINEL_WORKSPACE_ID}.ods.opinsights.azure.com/api/logs?api-version=2016-04-01"
@@ -60,13 +77,17 @@ def send_to_sentinel(data):
         "Authorization": f"SharedKey {SENTINEL_WORKSPACE_ID}:{SENTINEL_SHARED_KEY}",
         "Content-Type": "application/json"
     }
-    for record in data['Tables'][0]['Rows']:
+    for record in data:
         body = {
             "time": datetime.utcnow().isoformat() + "Z",
             "data": record
         }
-        response = requests.post(url, headers=headers, data=json.dumps(body))
-        response.raise_for_status()
+        try:
+            response = requests.post(url, headers=headers, data=json.dumps(body))
+            response.raise_for_status()
+        except Exception as e:
+            logging.error(f"Error sending data to Sentinel: {str(e)}")
+            raise
 
 def main(mytimer: func.TimerRequest) -> None:
     logging.info('Python timer trigger function started.')
@@ -84,4 +105,4 @@ def main(mytimer: func.TimerRequest) -> None:
             logging.info('No new data to process.')
 
     except Exception as e:
-        logging.error(f"Error: {str(e)}")
+        logging.error(f"Error in main function: {str(e)}")
