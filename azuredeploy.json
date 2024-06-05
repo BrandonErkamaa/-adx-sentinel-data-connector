@@ -48,7 +48,7 @@
   "variables": {
     "functionCodeUrl": "https://raw.githubusercontent.com/BrandonErkamaa/adx-sentinel-data-connector/main/functionapp.zip",
     "storageAccountName": "[substring(replace(replace(replace(concat(toLower(parameters('functionAppName')), 'storage'), '_', ''), '-', ''), ' ', ''), 0, 24)]",
-    "cleanFunctionAppName": "[replace(replace(replace(replace(parameters('functionAppName'), '_', ''), '-', ''), ' ', ''), '.', '')]",
+    "cleanFunctionAppName": "[toLower(take(replace(replace(replace(replace(parameters('functionAppName'), '_', ''), '-', ''), ' ', ''), '.', ''), 60))]",
     "managedIdentityResourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.ManagedIdentity/userAssignedIdentities/', parameters('managedIdentityName'))]",
     "applicationInsightsName": "[concat(parameters('functionAppName'), '-ai')]"
   },
