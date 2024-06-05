@@ -72,7 +72,8 @@ def query_adx(token, last_processed_row):
         raise
 
 def send_to_sentinel(data):
-    url = f"https://{SENTINEL_WORKSPACE_ID}.ods.opinsights.azure.com/api/logs?api-version=2016-04-01"
+    log_type = "YourLogType"  # Replace with your log type name
+    url = f"https://{SENTINEL_WORKSPACE_ID}.ods.opinsights.azure.com/api/logs?api-version=2016-04-01&logType={TABLE_NAME}"
     headers = {
         "Authorization": f"SharedKey {SENTINEL_WORKSPACE_ID}:{SENTINEL_SHARED_KEY}",
         "Content-Type": "application/json"
@@ -93,16 +94,31 @@ def main(mytimer: func.TimerRequest) -> None:
     logging.info('Python timer trigger function started.')
 
     try:
+        logging.info('Getting ADX token...')
         token = get_adx_token()
+        logging.info('Got ADX token.')
+
+        logging.info('Getting last processed row...')
         last_processed_row = get_last_processed_row()
+        logging.info(f'Got last processed row: {last_processed_row}')
+
+        logging.info('Querying ADX...')
         adx_data = query_adx(token, last_processed_row)
-        
+        logging.info('Queried ADX.')
+
         if adx_data['Tables'][0]['Rows']:
+            logging.info('Sending data to Sentinel...')
             send_to_sentinel(adx_data['Tables'][0]['Rows'])
+            logging.info('Sent data to Sentinel.')
+
             new_last_processed_row = adx_data['Tables'][0]['Rows'][-1][0]  # Assuming the first column is the timestamp
+            logging.info('Updating last processed row...')
             update_last_processed_row(new_last_processed_row)
+            logging.info('Updated last processed row.')
         else:
             logging.info('No new data to process.')
 
     except Exception as e:
         logging.error(f"Error in main function: {str(e)}")
+
+    logging.info('Python timer trigger function ended.')
