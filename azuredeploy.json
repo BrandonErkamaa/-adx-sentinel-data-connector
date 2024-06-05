@@ -80,7 +80,7 @@
     {
       "type": "Microsoft.Web/sites",
       "apiVersion": "2021-02-01",
-      "name": "[parameters('functionAppName')]",
+      "name": "[variables('cleanFunctionAppName')]",
       "location": "[resourceGroup().location]",
       "kind": "functionapp",
       "identity": {
@@ -161,7 +161,7 @@
   "outputs": {
     "functionAppName": {
       "type": "string",
-      "value": "[parameters('functionAppName')]"
+      "value": "[variables('cleanFunctionAppName')]"
     },
     "managedIdentityName": {
       "type": "string",
