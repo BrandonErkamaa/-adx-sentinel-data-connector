@@ -11,11 +11,25 @@ $STATE_TABLE_NAME = "adxStateTable"
 $STATE_PARTITION_KEY = "adxState"
 $STATE_ROW_KEY = "lastProcessedRow"
 
-# Function to get ADX token
+
+function ConvertTo-QueryString {
+    param ([hashtable]$hash)
+    return ($hash.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join "&"
+}
+
+# Function to get ADX token using Managed Identity
 function Get-AdxToken {
+    $tokenEndpoint = "http://169.254.169.254/metadata/identity/oauth2/token"
+    $params = @{
+        "api-version" = "2018-02-01"
+        "resource"    = "https://kusto.kusto.windows.net/"
+    }
+    $headers = @{
+        "Metadata" = "true"
+    }
     try {
-        $token = (Get-AzAccessToken -ResourceUrl "https://kusto.kusto.windows.net/").Token
-        return $token
+        $response = Invoke-RestMethod -Method Get -Uri "$tokenEndpoint?$(ConvertTo-QueryString $params)" -Headers $headers
+        return $response.access_token
     }
     catch {
         Write-Error "Error getting ADX token: $_"
@@ -89,9 +103,10 @@ function Query-Adx($token, $lastProcessedRow) {
 
 # Function to send data to Sentinel
 function Send-ToSentinel($data) {
+    $logType = "YourLogType"  # Replace with your log type name
     $url = "https://$SENTINEL_WORKSPACE_ID.ods.opinsights.azure.com/api/logs?api-version=2016-04-01&logType=$TABLE_NAME"
     $headers = @{
-        "Authorization" = "SharedKey ${SENTINEL_WORKSPACE_ID}:${SENTINEL_SHARED_KEY}"
+        "Authorization" = "SharedKey $SENTINEL_WORKSPACE_ID:$SENTINEL_SHARED_KEY"
         "Content-Type"  = "application/json"
     }
     foreach ($record in $data) {
