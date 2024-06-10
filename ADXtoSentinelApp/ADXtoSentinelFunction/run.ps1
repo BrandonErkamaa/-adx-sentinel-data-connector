@@ -25,7 +25,7 @@ function GetAdxToken {
 
     Write-Host "Getting token"
     $resource = "https://smartaccessexplorer.centralus.kusto.windows.net"
-    $response = (Get-AzAccessToken -ResourceUrl $resource)
+    $response = Get-AzAccessToken -ResourceUrl $resource
     Write-Host "response is $response"
     $token = $response.Token
     Write-Host "return value is $token"
@@ -40,6 +40,7 @@ function QueryAdx {
     $headers = @{
         "Authorization" = "Bearer $token"
     }
+    Write-Host "Headers are $headers"
     $uri = "https://$ADX_CLUSTER.centralus.kusto.windows.net/v2/rest/query"
     
     # Query to take 10 rows from the table
