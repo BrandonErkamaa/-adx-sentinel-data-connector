@@ -14,6 +14,7 @@ $STATE_ROW_KEY = "lastProcessedRow"
 
 # Function to get ADX token using Managed Identity
 function GetAdxToken {
+    Add-AzAccount -identity
     $resource = "https://smartaccessexplorer.centralus.kusto.windows.net"
     $token = (Get-AzAccessToken -ResourceUrl $resource).Token
     return $token
