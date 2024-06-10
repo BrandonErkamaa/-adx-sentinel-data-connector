@@ -26,9 +26,8 @@ function GetAdxToken {
     $resource = "https://smartaccessexplorer.centralus.kusto.windows.net"
     $token = (Get-AzAccessToken -ResourceUrl $resource).Token
     
-    $token2 = ""
-    Write-Host "Token retrieved: $token2"  # Log first 50 chars for security
-    return [string]$token2
+    Write-Host "Token retrieved: $token"  # Log first 50 chars for security
+    return [string]$token
 }
 
 # Function to query ADX using the retrieved token
