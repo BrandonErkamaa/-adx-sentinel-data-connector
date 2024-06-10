@@ -20,7 +20,7 @@ $ClientID = "5614d2cd-2239-43b3-8dc5-209512107993"
 # Function to get ADX token using Managed Identity
 function GetAdxToken {
     Write-Host "Logging in using User Managed Identity"
-    Connect-AzAccount -Identity -AccountId $ClientID
+    $null = Connect-AzAccount -Identity -AccountId $ClientID
 
     Write-Host "Getting token"
     $resource = "https://smartaccessexplorer.centralus.kusto.windows.net"
