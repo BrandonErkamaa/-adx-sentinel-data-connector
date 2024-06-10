@@ -19,15 +19,25 @@ function GetAdxToken {
     $headers = @{
         "Metadata" = "true"
     }
-    try {
-        # Constructing URI by concatenating token endpoint and parameters
-        $uri = $tokenEndpoint + "?" + ($params.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join '&'
-        $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
-        return $response.access_token
-    }
-    catch {
-        Write-Error "Error getting ADX token: $_"
-        throw
+
+    $retryCount = 3
+    $retryDelay = 5  # seconds
+    for ($i = 0; $i -lt $retryCount; $i++) {
+        try {
+            # Constructing URI by concatenating token endpoint and parameters
+            $uri = $tokenEndpoint + "?" + ($params.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join '&'
+            $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
+            return $response.access_token
+        }
+        catch {
+            Write-Error "Attempt $($i+1) failed: Error getting ADX token: $_"
+            if ($i -lt ($retryCount - 1)) {
+                Start-Sleep -Seconds $retryDelay
+            }
+            else {
+                throw
+            }
+        }
     }
 }
 
