@@ -1,5 +1,8 @@
 param($Timer)
 
+Install-Module -Name Az.Accounts -Scope CurrentUser -Force -AllowClobber
+Install-Module -Name Az.Kusto -Scope CurrentUser -Force -AllowClobber
+
 # Environment variables
 $ADX_CLUSTER = $env:ADX_CLUSTER
 $ADX_DATABASE = $env:ADX_DATABASE
@@ -11,7 +14,7 @@ $STATE_ROW_KEY = "lastProcessedRow"
 
 # Function to get ADX token using Managed Identity
 function GetAdxToken {
-    $resource = "https://kusto.kusto.windows.net"
+    $resource = "https://smartaccessexplorer.centralus.kusto.windows.net"
     $token = (Get-AzAccessToken -ResourceUrl $resource).Token
     return $token
 }
@@ -22,7 +25,7 @@ function QueryAdx {
     $headers = @{
         "Authorization" = "Bearer $token"
     }
-    $uri = "https://$ADX_CLUSTER.kusto.windows.net/v2/rest/query"
+    $uri = "https://$ADX_CLUSTER.centralus.kusto.windows.net/v2/rest/query"
     
     # Query to take 10 rows from the table
     $query = "['$TABLE_NAME'] | take 10"
