@@ -24,7 +24,7 @@ function GetAdxToken {
 
     Write-Host "Getting token"
     $resource = "https://smartaccessexplorer.centralus.kusto.windows.net"
-    $token = (Get-AzAccessToken -ResourceUrl $resource).Token.AccessToken
+    $token = (Get-AzAccessToken -ResourceUrl $resource).Token
     
     Write-Host "Token retrieved: $token"  # Log first 50 chars for security
     return $token
@@ -32,7 +32,11 @@ function GetAdxToken {
 
 # Function to query ADX using the retrieved token
 function QueryAdx {
-    $token = GetAdxToken
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$token
+    )
+
     Write-Host "Token being used: $token"
     Write-Host "Querying ADX"
 
@@ -70,7 +74,8 @@ function QueryAdx {
 # Timer-triggered function execution
 try {
     # Get new data from ADX
-    $results = QueryAdx
+    $token = GetAdxToken
+    $results = QueryAdx -token $token
     Write-Output "Query Results:"
     Write-Output $results
 }
