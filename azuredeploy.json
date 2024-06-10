@@ -119,7 +119,7 @@
             },
             {
               "name": "FUNCTIONS_EXTENSION_VERSION",
-              "value": "~3"
+              "value": "~4"
             },
             {
               "name": "WEBSITE_RUN_FROM_PACKAGE",
@@ -132,6 +132,10 @@
             {
               "name": "FUNCTIONS_WORKER_RUNTIME",
               "value": "powershell"
+            },
+            {
+              "name": "AZURE_FUNCTIONS_POWERSHELL_VERSION",
+              "value": "7.2"
             }
           ]
         }
