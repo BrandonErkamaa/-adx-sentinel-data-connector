@@ -1,5 +1,6 @@
 param($Timer)
 
+# Install necessary modules
 Install-Module -Name Az.Accounts -Scope CurrentUser -Force -AllowClobber
 Install-Module -Name Az.Kusto -Scope CurrentUser -Force -AllowClobber
 
@@ -16,31 +17,39 @@ $tenantId = "8f445392-4de8-4998-80f6-1f324068d229"
 $SubscriptionId = "df87a0ba-c88a-4273-83f9-23338d08f3fc"
 $ClientID = "5614d2cd-2239-43b3-8dc5-209512107993"
 
-
-
 # Function to get ADX token using Managed Identity
 function GetAdxToken {
     Write-Host "Logging in using User Managed Identity"
-    Connect-AzAccount -Identity -AccountId $ClientId
+    Connect-AzAccount -Identity -AccountId $ClientID
 
     Write-Host "Getting token"
     $resource = "https://smartaccessexplorer.centralus.kusto.windows.net"
     $response = Get-AzAccessToken -ResourceUrl $resource
-    Write-Host "response is $response"
-    $token = $response.Token
-    Write-Host "return value is $token"
+    
+    # Extract the token and ensure it's a plain string
+    $token = $response.Token | Out-String
+    $token = $token.Trim()  # Remove any extraneous whitespace
+    Write-Host "Token retrieved: $($token.Substring(0, 50))..."  # Log first 50 chars for security
     return $token
 }
 
 # Function to query ADX using the retrieved token
 function QueryAdx {
     $token = GetAdxToken
-    Write-Host "Token is , $token"
+    Write-Host "Token being used: $($token.Substring(0, 50))..."
     Write-Host "Querying ADX"
+
+    # Check the token's validity
+    if (-not $token) {
+        throw "Token is null or empty. Aborting query."
+    }
+
     $headers = @{
         "Authorization" = "Bearer $token"
     }
-    Write-Host "Headers are $headers"
+
+    Write-Host "Headers are @{Authorization=Bearer $token}"
+
     $uri = "https://$ADX_CLUSTER.centralus.kusto.windows.net/v2/rest/query"
     
     # Query to take 10 rows from the table
