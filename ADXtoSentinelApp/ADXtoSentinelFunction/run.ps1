@@ -27,7 +27,7 @@ function GetAdxToken {
     $token = (Get-AzAccessToken -ResourceUrl $resource).Token
     
     Write-Host "Token retrieved: $token"  # Log first 50 chars for security
-    return $token
+    return [string]$token
 }
 
 # Function to query ADX using the retrieved token
@@ -75,6 +75,7 @@ function QueryAdx {
 try {
     # Get new data from ADX
     $token = GetAdxToken
+    Write-Host "Token in main, $token"
     $results = QueryAdx -token $token
     Write-Output "Query Results:"
     Write-Output $results
