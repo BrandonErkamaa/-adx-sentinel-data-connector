@@ -26,38 +26,38 @@ function GetAdxToken {
     Write-Host "Getting token"
     $resource = "https://smartaccessexplorer.centralus.kusto.windows.net"
     $response = (Get-AzAccessToken -ResourceUrl $resource)
-    Write-Host "$response"
-
-    return $response.Token
+    Write-Host "response is $response"
+    $token = $response.Token
+    Write-Host "return value is $token"
+    return $token
 }
 
 # Function to query ADX using the retrieved token
 function QueryAdx {
     $token = GetAdxToken
-    Write-Host "$token"
+    Write-Host "Token is , $token"
+    Write-Host "Querying ADX"
+    $headers = @{
+        "Authorization" = "Bearer $token"
+    }
+    $uri = "https://$ADX_CLUSTER.centralus.kusto.windows.net/v2/rest/query"
     
-    # $headers = @{
-    #     "Authorization" = "Bearer $token"
-    # }
-    # $uri = "https://$ADX_CLUSTER.centralus.kusto.windows.net/v2/rest/query"
-    
-    # # Query to take 10 rows from the table
-    # $query = "['$TABLE_NAME'] | take 10"
+    # Query to take 10 rows from the table
+    $query = "['$TABLE_NAME'] | take 10"
 
-    # $body = @{
-    #     "db"  = $ADX_DATABASE
-    #     "csl" = $query
-    # } | ConvertTo-Json
+    $body = @{
+        "db"  = $ADX_DATABASE
+        "csl" = $query
+    } | ConvertTo-Json
 
-    # try {
-    #     $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -ContentType "application/json" -Body $body
-    #     return $response
-    # }
-    # catch {
-    #     Write-Error "Error querying ADX: $_"
-    #     throw
-    # }
-    return $token
+    try {
+        $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -ContentType "application/json" -Body $body
+        return $response
+    }
+    catch {
+        Write-Error "Error querying ADX: $_"
+        throw
+    }
 }
 
 # Timer-triggered function execution
