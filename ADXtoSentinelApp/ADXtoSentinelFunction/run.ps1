@@ -71,6 +71,51 @@ function QueryAdx {
     }
 }
 
+
+# Function to send data to Sentinel
+function WriteToSentinel {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$workspaceId,
+        [Parameter(Mandatory = $true)]
+        [string]$sharedKey,
+        [Parameter(Mandatory = $true)]
+        [string]$logName,
+        [Parameter(Mandatory = $true)]
+        $data
+    )
+
+    $apiVersion = "2016-04-01"
+    $uri = "https://${workspaceId}.ods.opinsights.azure.com/api/logs?api-version=${apiVersion}"
+
+    $body = $data | ConvertTo-Json -Depth 100
+
+    $date = (Get-Date).ToUniversalTime().ToString("r")
+    $stringToSign = "POST\n" + $body.Length + "\napplication/json\nx-ms-date:${date}\n/api/logs"
+    $hmacsha256 = New-Object System.Security.Cryptography.HMACSHA256
+    $hmacsha256.Key = [Convert]::FromBase64String($sharedKey)
+    $signature = $hmacsha256.ComputeHash([Text.Encoding]::UTF8.GetBytes($stringToSign))
+    $signature = [Convert]::ToBase64String($signature)
+    $authorization = "SharedKey ${workspaceId}:${signature}"
+
+    $headers = @{
+        "Content-Type"  = "application/json"
+        "Authorization" = $authorization
+        "Log-Type"      = $logName
+        "x-ms-date"     = $date
+    }
+
+    try {
+        Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body $body
+        Write-Host "Data successfully sent to Sentinel"
+    }
+    catch {
+        Write-Error "Error sending data to Sentinel: $_"
+        throw
+    }
+}
+
+
 # Timer-triggered function execution
 try {
     # Get new data from ADX
@@ -79,6 +124,9 @@ try {
     $results = QueryAdx -token $token
     Write-Output "Query Results:"
     Write-Output $results
+
+    $logName = "TestTable1"
+    WriteToSentinel -workspaceId $SENTINEL_WORKSPACE_ID -sharedKey $SENTINEL_SHARED_KEY -logName $logName -data $results
 }
 catch {
     Write-Error "Error during function execution: $_"
