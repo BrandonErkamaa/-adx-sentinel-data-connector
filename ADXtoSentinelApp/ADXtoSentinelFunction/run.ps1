@@ -14,12 +14,17 @@ $STATE_ROW_KEY = "lastProcessedRow"
 
 $tenantId = "8f445392-4de8-4998-80f6-1f324068d229"
 $SubscriptionId = "df87a0ba-c88a-4273-83f9-23338d08f3fc"
+$ClientID = "5614d2cd-2239-43b3-8dc5-209512107993"
 
 
 
 # Function to get ADX token using Managed Identity
 function GetAdxToken {
-    Connect-AzAccount -Identity -TenantId $tenantId -SubscriptionId $SubscriptionId
+
+
+    Connect-AzAccount -Identity -AccountId $ClientId
+
+
     $resource = "https://smartaccessexplorer.centralus.kusto.windows.net"
     $token = (Get-AzAccessToken -ResourceUrl $resource).Token
     return $token
