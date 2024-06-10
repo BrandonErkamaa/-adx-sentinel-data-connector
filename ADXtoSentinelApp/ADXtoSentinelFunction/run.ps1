@@ -11,34 +11,9 @@ $STATE_ROW_KEY = "lastProcessedRow"
 
 # Function to get ADX token using Managed Identity
 function GetAdxToken {
-    $tokenEndpoint = "http://169.254.169.254/metadata/identity/oauth2/token"
-    $params = @{
-        "api-version" = "2018-02-01"
-        "resource"    = "https://kusto.kusto.windows.net"
-    }
-    $headers = @{
-        "Metadata" = "true"
-    }
-
-    $retryCount = 3
-    $retryDelay = 5  # seconds
-    for ($i = 0; $i -lt $retryCount; $i++) {
-        try {
-            # Constructing URI by concatenating token endpoint and parameters
-            $uri = $tokenEndpoint + "?" + ($params.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join '&'
-            $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
-            return $response.access_token
-        }
-        catch {
-            Write-Error "Attempt $($i+1) failed: Error getting ADX token: $_"
-            if ($i -lt ($retryCount - 1)) {
-                Start-Sleep -Seconds $retryDelay
-            }
-            else {
-                throw
-            }
-        }
-    }
+    $resource = "https://kusto.kusto.windows.net"
+    $token = (Get-AzAccessToken -ResourceUrl $resource).Token
+    return $token
 }
 
 # Function to query ADX using the retrieved token
