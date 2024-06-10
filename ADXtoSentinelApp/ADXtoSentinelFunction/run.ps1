@@ -20,40 +20,44 @@ $ClientID = "5614d2cd-2239-43b3-8dc5-209512107993"
 
 # Function to get ADX token using Managed Identity
 function GetAdxToken {
-
-
+    Write-Host "Logging in using User Managed Identity"
     Connect-AzAccount -Identity -AccountId $ClientId
 
-
+    Write-Host "Getting token"
     $resource = "https://smartaccessexplorer.centralus.kusto.windows.net"
-    $token = (Get-AzAccessToken -ResourceUrl $resource).Token
-    return $token
+    $response = (Get-AzAccessToken -ResourceUrl $resource)
+    Write-Host "$response"
+
+    return $response.Token
 }
 
 # Function to query ADX using the retrieved token
 function QueryAdx {
     $token = GetAdxToken
-    $headers = @{
-        "Authorization" = "Bearer $token"
-    }
-    $uri = "https://$ADX_CLUSTER.centralus.kusto.windows.net/v2/rest/query"
+    Write-Host "$token"
     
-    # Query to take 10 rows from the table
-    $query = "['$TABLE_NAME'] | take 10"
+    # $headers = @{
+    #     "Authorization" = "Bearer $token"
+    # }
+    # $uri = "https://$ADX_CLUSTER.centralus.kusto.windows.net/v2/rest/query"
+    
+    # # Query to take 10 rows from the table
+    # $query = "['$TABLE_NAME'] | take 10"
 
-    $body = @{
-        "db"  = $ADX_DATABASE
-        "csl" = $query
-    } | ConvertTo-Json
+    # $body = @{
+    #     "db"  = $ADX_DATABASE
+    #     "csl" = $query
+    # } | ConvertTo-Json
 
-    try {
-        $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -ContentType "application/json" -Body $body
-        return $response
-    }
-    catch {
-        Write-Error "Error querying ADX: $_"
-        throw
-    }
+    # try {
+    #     $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -ContentType "application/json" -Body $body
+    #     return $response
+    # }
+    # catch {
+    #     Write-Error "Error querying ADX: $_"
+    #     throw
+    # }
+    return $token
 }
 
 # Timer-triggered function execution
