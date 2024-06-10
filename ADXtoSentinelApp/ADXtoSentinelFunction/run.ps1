@@ -29,14 +29,14 @@ function GetAdxToken {
     # Extract the token and ensure it's a plain string
     $token = $response.Token | Out-String
     $token = $token.Trim()  # Remove any extraneous whitespace
-    Write-Host "Token retrieved: $($token.Substring(0, 50))..."  # Log first 50 chars for security
+    Write-Host "Token retrieved: $token"  # Log first 50 chars for security
     return $token
 }
 
 # Function to query ADX using the retrieved token
 function QueryAdx {
     $token = GetAdxToken
-    Write-Host "Token being used: $($token.Substring(0, 50))..."
+    Write-Host "Token being used: $token"
     Write-Host "Querying ADX"
 
     # Check the token's validity
