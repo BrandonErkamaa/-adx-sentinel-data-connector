@@ -9,7 +9,8 @@ $ADX_CLUSTER = $env:ADX_CLUSTER
 $ADX_DATABASE = $env:ADX_DATABASE
 $TABLE_NAME = $env:TABLE_NAME
 $SENTINEL_WORKSPACE_ID = $env:SENTINEL_WORKSPACE_ID
-$SENTINEL_SHARED_KEY = $env:SENTINEL_WORKSPACE_KEY
+$logAnalyticsUri = "https://" + $SENTINEL_WORKSPACE_ID + ".ods.opinsights.azure.com"
+$SENTINEL_SHARED_KEY = $env:SENTINEL_SHARED_KEY
 $STORAGE_CONNECTION_STRING = $env:AzureWebJobsStorage
 $STATE_TABLE_NAME = "adxStateTable"
 $STATE_PARTITION_KEY = "adxState"
@@ -28,7 +29,7 @@ function GetAdxToken {
     $resource = "https://smartaccessexplorer.centralus.kusto.windows.net"
     $token = (Get-AzAccessToken -ResourceUrl $resource).Token
     
-    Write-Host "Token retrieved: $token"  # Log first 50 chars for security
+    Write-Host "Token retrieved: $token" 
     return [string]$token
 }
 
@@ -73,62 +74,87 @@ function QueryAdx {
     }
 }
 
-
-# Function to send data to Sentinel
-function WriteToSentinel {
+# Function to build the signature for the request
+Function BuildSignature {
     param (
-        [Parameter(Mandatory = $true)]
-        [string]$workspaceId,
-        [Parameter(Mandatory = $true)]
+        [string]$customerId,
         [string]$sharedKey,
-        [Parameter(Mandatory = $true)]
-        [string]$logName,
-        [Parameter(Mandatory = $true)]
-        $data
+        [string]$date,
+        [int]$contentLength,
+        [string]$method,
+        [string]$contentType,
+        [string]$resource
     )
+    
+    $xHeaders = "x-ms-date:" + $date
+    $stringToHash = $method + "`n" + $contentLength + "`n" + $contentType + "`n" + $xHeaders + "`n" + $resource
 
-    $apiVersion = "2016-04-01"
-    $uri = "https://${workspaceId}.ods.opinsights.azure.com/api/logs?api-version=${apiVersion}"
+    $bytesToHash = [Text.Encoding]::UTF8.GetBytes($stringToHash)
+    $keyBytes = [Convert]::FromBase64String($sharedKey)
 
-    $body = $data | ConvertTo-Json -Depth 100
+    $sha256 = New-Object System.Security.Cryptography.HMACSHA256
+    $sha256.Key = $keyBytes
+    $calculatedHash = $sha256.ComputeHash($bytesToHash)
+    $encodedHash = [Convert]::ToBase64String($calculatedHash)
+    $authorization = 'SharedKey {0}:{1}' -f $customerId, $encodedHash
 
-    $date = (Get-Date).ToUniversalTime().ToString("r")
-    $stringToSign = "POST\n" + $body.Length + "\napplication/json\nx-ms-date:${date}\n/api/logs"
-    $hmacsha256 = New-Object System.Security.Cryptography.HMACSHA256
-    $hmacsha256.Key = [Convert]::FromBase64String($sharedKey)
-    $signature = $hmacsha256.ComputeHash([Text.Encoding]::UTF8.GetBytes($stringToSign))
-    $signature = [Convert]::ToBase64String($signature)
-    $authorization = "SharedKey ${workspaceId}:${signature}"
+    # Dispose SHA256 from heap before return
+    $sha256.Dispose()
 
-    $headers = @{
-        "Content-Type"  = "application/json"
-        "Authorization" = $authorization
-        "Log-Type"      = $logName
-        "x-ms-date"     = $date
-    }
-
-    try {
-        Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body $body
-        Write-Host "Data successfully sent to Sentinel"
-    }
-    catch {
-        Write-Error "Error sending data to Sentinel: $_"
-        throw
-    }
+    return $authorization
 }
 
+# Function to create and invoke an API POST request to the Log Analytics Data Connector API
+Function PostLogAnalyticsData {
+    param (
+        [string]$customerId,
+        [string]$sharedKey,
+        [string]$body,
+        [string]$logType
+    )
+
+    $method = "POST"
+    $contentType = "application/json"
+    $resource = "/api/logs"
+    $rfc1123date = [DateTime]::UtcNow.ToString("r")
+    $contentLength = $body.Length
+    $signature = BuildSignature `
+        -customerId $customerId `
+        -sharedKey $sharedKey `
+        -date $rfc1123date `
+        -contentLength $contentLength `
+        -method $method `
+        -contentType $contentType `
+        -resource $resource
+    $uri = $logAnalyticsUri + $resource + "?api-version=2016-04-01"
+
+    $headers = @{
+        "Authorization"        = $signature
+        "Log-Type"             = $logType
+        "x-ms-date"            = $rfc1123date
+        "time-generated-field" = "TimeGenerated"
+    }
+
+    $response = Invoke-WebRequest -Uri $uri -Method $method -ContentType $contentType -Headers $headers -Body $body -UseBasicParsing
+    return $response.StatusCode
+}
 
 # Timer-triggered function execution
 try {
     # Get new data from ADX
     $token = GetAdxToken
-    Write-Host "Token in main, $token"
+    Write-Host "Token in main: $token"
     $results = QueryAdx -token $token
     Write-Output "Query Results:"
     Write-Output $results
 
+    # Convert results to JSON
+    $jsonBody = $results | ConvertTo-Json -Depth 10 -Compress
+
+    # Send the results to Sentinel
     $logName = "TestTable1"
-    WriteToSentinel -workspaceId $SENTINEL_WORKSPACE_ID -sharedKey $SENTINEL_SHARED_KEY -logName $logName -data $results
+    $statusCode = PostLogAnalyticsData -customerId $SENTINEL_WORKSPACE_ID -sharedKey $SENTINEL_SHARED_KEY -body $jsonBody -logType $logName
+    Write-Host "Post-LogAnalyticsData returned status code: $statusCode"
 }
 catch {
     Write-Error "Error during function execution: $_"
