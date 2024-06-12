@@ -1,5 +1,11 @@
 param($Timer)
 
+$currentUTCtime = (Get-Date).ToUniversalTime()
+
+if ($Timer.IsPastDue) {
+    Write-Host "PowerShell timer is running late! $($Timer.ScheduledStatus.Last)"
+}
+
 # Install necessary modules
 Install-Module -Name Az.Accounts -Scope CurrentUser -Force -AllowClobber
 Install-Module -Name Az.Kusto -Scope CurrentUser -Force -AllowClobber
@@ -29,7 +35,7 @@ function GetAdxToken {
     $resource = "https://smartaccessexplorer.centralus.kusto.windows.net"
     $token = (Get-AzAccessToken -ResourceUrl $resource).Token
     
-    Write-Host "Token retrieved: $token" 
+    Write-Host "Token retrieved: $token"
     return [string]$token
 }
 
@@ -75,7 +81,7 @@ function QueryAdx {
 }
 
 # Function to build the signature for the request
-Function BuildSignature {
+Function Build-Signature {
     param (
         [string]$customerId,
         [string]$sharedKey,
@@ -89,23 +95,32 @@ Function BuildSignature {
     $xHeaders = "x-ms-date:" + $date
     $stringToHash = $method + "`n" + $contentLength + "`n" + $contentType + "`n" + $xHeaders + "`n" + $resource
 
+    Write-Host "String to hash: $stringToHash"
+    write-host "Shared key: $sharedKey"
+    write-host "Customer ID: $customerId"
+
     $bytesToHash = [Text.Encoding]::UTF8.GetBytes($stringToHash)
     $keyBytes = [Convert]::FromBase64String($sharedKey)
+
+    write-host "Bytes to hash: $bytesToHash"
+    write-host "Key bytes: $keyBytes"   
 
     $sha256 = New-Object System.Security.Cryptography.HMACSHA256
     $sha256.Key = $keyBytes
     $calculatedHash = $sha256.ComputeHash($bytesToHash)
     $encodedHash = [Convert]::ToBase64String($calculatedHash)
     $authorization = 'SharedKey {0}:{1}' -f $customerId, $encodedHash
+    write-host "Authorization: $authorization"
 
-    # Dispose SHA256 from heap before return
+    
+    # Dispose SHA256 from heap before return.
     $sha256.Dispose()
 
     return $authorization
 }
 
 # Function to create and invoke an API POST request to the Log Analytics Data Connector API
-Function PostLogAnalyticsData {
+Function Post-LogAnalyticsData {
     param (
         [string]$customerId,
         [string]$sharedKey,
@@ -118,7 +133,7 @@ Function PostLogAnalyticsData {
     $resource = "/api/logs"
     $rfc1123date = [DateTime]::UtcNow.ToString("r")
     $contentLength = $body.Length
-    $signature = BuildSignature `
+    $signature = Build-Signature `
         -customerId $customerId `
         -sharedKey $sharedKey `
         -date $rfc1123date `
@@ -126,16 +141,32 @@ Function PostLogAnalyticsData {
         -method $method `
         -contentType $contentType `
         -resource $resource
+    
     $uri = $logAnalyticsUri + $resource + "?api-version=2016-04-01"
 
     $headers = @{
-        "Authorization"        = $signature
-        "Log-Type"             = $logType
-        "x-ms-date"            = $rfc1123date
-        "time-generated-field" = "TimeGenerated"
+        "Authorization"        = $signature;
+        "Log-Type"             = $logType;
+        "x-ms-date"            = $rfc1123date;
+        "time-generated-field" = "TimeGenerated";
+    }
+    write-host "Headers: $headers"
+
+    try {
+        $response = Invoke-WebRequest -Uri $uri -Method $method -ContentType $contentType -Headers $headers -Body $body -UseBasicParsing
+    }
+    catch {
+        Write-Error "Error during sending logs to Azure Sentinel: $_.Exception.Message"
+        # Exit out of context
+        Exit
+    }
+    if ($response.StatusCode -eq 200) {
+        Write-Host "Logs have been successfully sent to Azure Sentinel."
+    }
+    else {
+        Write-Host "Error during sending logs to Azure Sentinel. Response code : $response.StatusCode"
     }
 
-    $response = Invoke-WebRequest -Uri $uri -Method $method -ContentType $contentType -Headers $headers -Body $body -UseBasicParsing
     return $response.StatusCode
 }
 
@@ -150,10 +181,10 @@ try {
 
     # Convert results to JSON
     $jsonBody = $results | ConvertTo-Json -Depth 10 -Compress
-
+    write-host "JSON Body: $jsonBody"
     # Send the results to Sentinel
     $logName = "TestTable1"
-    $statusCode = PostLogAnalyticsData -customerId $SENTINEL_WORKSPACE_ID -sharedKey $SENTINEL_SHARED_KEY -body $jsonBody -logType $logName
+    $statusCode = Post-LogAnalyticsData -customerId $SENTINEL_WORKSPACE_ID -sharedKey $SENTINEL_SHARED_KEY -body $jsonBody -logType $logName
     Write-Host "Post-LogAnalyticsData returned status code: $statusCode"
 }
 catch {
