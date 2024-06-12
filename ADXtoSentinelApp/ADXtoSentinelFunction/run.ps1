@@ -96,27 +96,26 @@ Function Build-Signature {
     $stringToHash = $method + "`n" + $contentLength + "`n" + $contentType + "`n" + $xHeaders + "`n" + $resource
 
     Write-Host "String to hash: $stringToHash"
-    write-host "Shared key: $sharedKey"
-    write-host "Customer ID: $customerId"
+    Write-Host "Shared key: $sharedKey"
+    Write-Host "Customer ID: $customerId"
 
     $bytesToHash = [Text.Encoding]::UTF8.GetBytes($stringToHash)
     $keyBytes = [Convert]::FromBase64String($sharedKey)
 
-    write-host "Bytes to hash: $bytesToHash"
-    write-host "Key bytes: $keyBytes"   
+    Write-Host "Bytes to hash: $($bytesToHash -join ',')"
+    Write-Host "Key bytes: $($keyBytes -join ',')"   
 
     $sha256 = New-Object System.Security.Cryptography.HMACSHA256
     $sha256.Key = $keyBytes
     $calculatedHash = $sha256.ComputeHash($bytesToHash)
     $encodedHash = [Convert]::ToBase64String($calculatedHash)
     $authorization = 'SharedKey {0}:{1}' -f $customerId, $encodedHash
-    write-host "Authorization: $authorization"
-
+    Write-Host "Authorization: $authorization"
     
     # Dispose SHA256 from heap before return.
     $sha256.Dispose()
 
-    return $authorization
+    return $authorization 
 }
 
 # Function to create and invoke an API POST request to the Log Analytics Data Connector API
@@ -150,15 +149,14 @@ Function Post-LogAnalyticsData {
         "x-ms-date"            = $rfc1123date;
         "time-generated-field" = "TimeGenerated";
     }
-    write-host "Headers: $headers"
+    Write-Host "Headers: $($headers.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" })"
 
     try {
         $response = Invoke-WebRequest -Uri $uri -Method $method -ContentType $contentType -Headers $headers -Body $body -UseBasicParsing
     }
     catch {
-        Write-Error "Error during sending logs to Azure Sentinel: $_.Exception.Message"
-        # Exit out of context
-        Exit
+        Write-Error "Error during sending logs to Azure Sentinel: $_"
+        throw $_  # Re-throwing to capture in the outer try-catch
     }
     if ($response.StatusCode -eq 200) {
         Write-Host "Logs have been successfully sent to Azure Sentinel."
@@ -184,6 +182,9 @@ try {
     write-host "JSON Body: $jsonBody"
     # Send the results to Sentinel
     $logName = "TestTable1"
+    write-host "Sentinel_Workspace_ID: $SENTINEL_WORKSPACE_ID"
+    write-host "Sentinel_Shared_Key: $SENTINEL_SHARED_KEY"
+
     $statusCode = Post-LogAnalyticsData -customerId $SENTINEL_WORKSPACE_ID -sharedKey $SENTINEL_SHARED_KEY -body $jsonBody -logType $logName
     Write-Host "Post-LogAnalyticsData returned status code: $statusCode"
 }
