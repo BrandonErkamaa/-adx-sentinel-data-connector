@@ -34,8 +34,7 @@ function GetAdxToken {
     Write-Host "Getting token"
     $resource = "https://smartaccessexplorer.centralus.kusto.windows.net"
     $token = (Get-AzAccessToken -ResourceUrl $resource).Token
-    
-    Write-Host "Token retrieved: $token"
+
     return [string]$token
 }
 
@@ -45,8 +44,6 @@ function QueryAdx {
         [Parameter(Mandatory = $true)]
         [string]$token
     )
-
-    Write-Host "Token being used: $token"
     Write-Host "Querying ADX"
 
     # Check the token's validity
@@ -57,8 +54,6 @@ function QueryAdx {
     $headers = @{
         "Authorization" = "Bearer $token"
     }
-
-    Write-Host "Headers are @{Authorization=Bearer $token}"
 
     $uri = "https://$ADX_CLUSTER.centralus.kusto.windows.net/v2/rest/query"
     
@@ -92,25 +87,19 @@ Function Build-Signature {
         [string]$resource
     )
     
+    Write-Host "Building signature"
+
     $xHeaders = "x-ms-date:" + $date
     $stringToHash = $method + "`n" + $contentLength + "`n" + $contentType + "`n" + $xHeaders + "`n" + $resource
 
-    Write-Host "String to hash: $stringToHash"
-    Write-Host "Shared key: $sharedKey"
-    Write-Host "Customer ID: $customerId"
-
     $bytesToHash = [Text.Encoding]::UTF8.GetBytes($stringToHash)
     $keyBytes = [Convert]::FromBase64String($sharedKey)
-
-    Write-Host "Bytes to hash: $($bytesToHash -join ',')"
-    Write-Host "Key bytes: $($keyBytes -join ',')"   
 
     $sha256 = New-Object System.Security.Cryptography.HMACSHA256
     $sha256.Key = $keyBytes
     $calculatedHash = $sha256.ComputeHash($bytesToHash)
     $encodedHash = [Convert]::ToBase64String($calculatedHash)
     $authorization = 'SharedKey {0}:{1}' -f $customerId, $encodedHash
-    Write-Host "Authorization: $authorization"
     
     # Dispose SHA256 from heap before return.
     $sha256.Dispose()
@@ -126,6 +115,7 @@ Function Post-LogAnalyticsData {
         [string]$body,
         [string]$logType
     )
+    write-host "Posting logs to Azure Sentinel"
 
     $method = "POST"
     $contentType = "application/json"
@@ -149,8 +139,6 @@ Function Post-LogAnalyticsData {
         "x-ms-date"            = $rfc1123date;
         "time-generated-field" = "TimeGenerated";
     }
-    Write-Host "Headers: $($headers.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" })"
-
     try {
         $response = Invoke-WebRequest -Uri $uri -Method $method -ContentType $contentType -Headers $headers -Body $body -UseBasicParsing
     }
@@ -174,9 +162,9 @@ Function Format-AdxResultsForSentinel {
         [Parameter(Mandatory = $true)]
         [PSCustomObject]$adxResults
     )
-
     Write-Host "Formatting ADX results for Sentinel"
 
+    Write-Host "ADX Results: $adxResults"
     $primaryResult = $adxResults.Tables | Where-Object { $_.TableName -eq 'PrimaryResult' }
 
     if (-not $primaryResult) {
@@ -206,7 +194,6 @@ Function Format-AdxResultsForSentinel {
 try {
     # Get new data from ADX
     $token = GetAdxToken
-    Write-Host "Token in main: $token"
     $results = QueryAdx -token $token
     Write-Output "Query Results:"
     Write-Output $results
