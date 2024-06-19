@@ -168,6 +168,40 @@ Function Post-LogAnalyticsData {
     return $response.StatusCode
 }
 
+# Function to format ADX results for Sentinel
+Function Format-AdxResultsForSentinel {
+    param (
+        [Parameter(Mandatory = $true)]
+        [PSCustomObject]$adxResults
+    )
+
+    Write-Host "Formatting ADX results for Sentinel"
+
+    $primaryResult = $adxResults.Tables | Where-Object { $_.TableName -eq 'PrimaryResult' }
+
+    if (-not $primaryResult) {
+        throw "No 'PrimaryResult' table found in ADX results."
+    }
+
+    $columns = $primaryResult.Columns | ForEach-Object { $_.ColumnName }
+    Write-Host "Columns: $($columns -join ',')"
+    $rows = $primaryResult.Rows
+    Write-Host "Rows: $($rows -join ',')"
+
+
+    $formattedResults = @()
+    foreach ($row in $rows) {
+        $formattedRow = @{}
+        for ($i = 0; $i -lt $columns.Count; $i++) {
+            $formattedRow[$columns[$i]] = $row[$i]
+        }
+        $formattedResults += [PSCustomObject]$formattedRow
+    }
+    write-host "Formatted Results: $($formattedResults -join ',')"
+
+    return $formattedResults
+}
+
 # Timer-triggered function execution
 try {
     # Get new data from ADX
@@ -177,17 +211,23 @@ try {
     Write-Output "Query Results:"
     Write-Output $results
 
-    # Convert results to JSON
-    $jsonBody = $results | ConvertTo-Json -Depth 10 -Compress
-    write-host "JSON Body: $jsonBody"
+    # Format the results for Sentinel
+    $formattedResults = Format-AdxResultsForSentinel -adxResults $results
+    Write-Host "Formatted Results for Sentinel:"
+    Write-Output $formattedResults
+
+    # Convert formatted results to JSON
+    $jsonBody = $formattedResults | ConvertTo-Json -Depth 10 -Compress
+    Write-Host "JSON Body: $jsonBody"
+    
     # Send the results to Sentinel
     $logName = "TestTable1"
-    write-host "Sentinel_Workspace_ID: $SENTINEL_WORKSPACE_ID"
-    write-host "Sentinel_Shared_Key: $SENTINEL_SHARED_KEY"
+    Write-Host "Sentinel_Workspace_ID: $SENTINEL_WORKSPACE_ID"
+    Write-Host "Sentinel_Shared_Key: $SENTINEL_SHARED_KEY"
 
     $statusCode = Post-LogAnalyticsData -customerId $SENTINEL_WORKSPACE_ID -sharedKey $SENTINEL_SHARED_KEY -body $jsonBody -logType $logName
-    Write-Host "Post-LogAnalyticsData returned status code: $statusCode"
+    Write-Host “Post-LogAnalyticsData returned status code: $statusCode”
 }
 catch {
-    Write-Error "Error during function execution: $_"
+    Write-Error “Error during function execution: $_”
 }
