@@ -162,19 +162,24 @@ Function Format-AdxResultsForSentinel {
         [Parameter(Mandatory = $true)]
         [PSCustomObject]$adxResults
     )
+
     Write-Host "Formatting ADX results for Sentinel"
 
-    $primaryResult = $adxResults.Tables | Where-Object { $_.TableName -eq 'PrimaryResult' }
+    # Extract DataTables
+    $dataTables = $adxResults | Where-Object { $_.FrameType -eq 'DataTable' }
 
-    if (-not $primaryResult) {
+    # Find the PrimaryResult table
+    $primaryResultTable = $dataTables | Where-Object { $_.TableKind -eq 'PrimaryResult' }
+
+    if (-not $primaryResultTable) {
         throw "No 'PrimaryResult' table found in ADX results."
     }
 
-    $columns = $primaryResult.Columns | ForEach-Object { $_.ColumnName }
+    # Extract columns and rows
+    $columns = $primaryResultTable.Columns | ForEach-Object { $_.ColumnName }
     Write-Host "Columns: $($columns -join ',')"
-    $rows = $primaryResult.Rows
-    Write-Host "Rows: $($rows -join ',')"
-
+    $rows = $primaryResultTable.Rows
+    Write-Host "Rows: $($rows.Count)"
 
     $formattedResults = @()
     foreach ($row in $rows) {
@@ -184,10 +189,12 @@ Function Format-AdxResultsForSentinel {
         }
         $formattedResults += [PSCustomObject]$formattedRow
     }
-    write-host "Formatted Results: $($formattedResults -join ',')"
+    Write-Host "Formatted Results: $($formattedResults -join ',')"
 
     return $formattedResults
 }
+
+# Rest of the code remains unchanged
 
 # Timer-triggered function execution
 try {
