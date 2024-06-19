@@ -221,7 +221,7 @@ try {
     Write-Host "JSON Body: $jsonBody"
     
     # Send the results to Sentinel
-    $logName = "TestTable1"
+    $logName = "TestTable2"
     Write-Host "Sentinel_Workspace_ID: $SENTINEL_WORKSPACE_ID"
     Write-Host "Sentinel_Shared_Key: $SENTINEL_SHARED_KEY"
 
