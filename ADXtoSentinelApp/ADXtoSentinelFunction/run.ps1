@@ -164,7 +164,6 @@ Function Format-AdxResultsForSentinel {
     )
     Write-Host "Formatting ADX results for Sentinel"
 
-    Write-Host "ADX Results: $adxResults"
     $primaryResult = $adxResults.Tables | Where-Object { $_.TableName -eq 'PrimaryResult' }
 
     if (-not $primaryResult) {
@@ -195,6 +194,8 @@ try {
     # Get new data from ADX
     $token = GetAdxToken
     $results = QueryAdx -token $token
+
+    $results | Format-List -Force
     Write-Output "Query Results:"
     Write-Output $results
 
